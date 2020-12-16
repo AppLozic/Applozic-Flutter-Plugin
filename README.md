@@ -12,7 +12,7 @@ Apps using Applozic can target Xcode 11 or later and AndroidX is required.
 ```yaml
  dependencies:
   # other dependencies
- applozic_flutter: ^0.0.3
+ applozic_flutter: ^0.0.4
 ```
 
 2) Install the package as below:
@@ -96,7 +96,7 @@ You can get the userId of the logged in user as below:
 ### Launch main chat screen
 Launch the main chat screen as below:
 ```dart
-  ApplozicFlutter.launchChat();
+  ApplozicFlutter.launchChatScreen();
 ```
 
 ### Launch Chat with a specific User
@@ -143,6 +143,106 @@ To create a group, you need to create a groupInfo object and then pass it to the
             })
             .catchError((error, stack) =>
                 print("Group created failed : " + error.toString()));
+```
+
+## Add member to group
+To add a member to a group you need to great a object with userId of the member to add and the groupId/clientGroupId (either one) of the group:
+```dart
+dynamic detailObject = {
+      'userId': "userId", //userId of the user to add
+      'groupId': 123456 //groupId of the group to add the user to
+    };
+```
+Then pass the object to this function:
+```dart
+ApplozicFlutter.addMemberToGroup(detailObject)
+        .then((value) => {
+              print("Member added successfully."),
+              ApplozicFlutter.createToast("Member added successfully.")
+            })
+        .catchError((e, s) => {
+              print("Error adding member."),
+              ApplozicFlutter.createToast("Error in adding member.")
+            });
+```
+
+## Remove member from group
+To add a member to a group you need to great a object with userId of the member to add and the groupId/clientGroupId (either one) of the group:
+```dart
+dynamic detailObject = {
+      'userId': "userId", //userId of the user to remove
+      'groupId': 123456 //groupId of the group to remove the user from
+    };
+```
+Then pass the object to this function:
+```dart
+ApplozicFlutter.removeMemberFromGroup(detailObject)
+        .then((value) => {
+              print("Member removed successfully."),
+              ApplozicFlutter.createToast("Member removed successfully.")
+            })
+        .catchError((e, s) => {
+              print("Error removing member."),
+              ApplozicFlutter.createToast("Error in removing member.")
+            });
+```
+
+## Send message
+To send a message to a contact or a group, you must first create a message object:
+```dart
+dynamic message = {
+      'to': userId, // to send message to a contact pass the userId of the receiver (You can ignore the groupId in this case)
+      'groupId': groupId, //to send message to a group pass the groupId (You can ingore the userId in this case)
+      'message': "message text", // message to send
+      'type': 0 //(optional) DEFAULT(0),
+    };
+```
+**Note:** A message object can have more parameters. Refer to this link: https://docs.applozic.com/docs/android-chat-message-api#build-your-ui-from-scratch---message-api
+
+Then pass the message object to this function:
+```dart
+ApplozicFlutter.sendMessage(message)
+    .then((value) => print("Message sent."))
+    .catchError((e, s) => print("Error while sending message: " + e.toString()));
+```
+
+## Unread message count for contact
+To get the unread count for contact, pass the userId of the contact to the function:
+```dart
+ApplozicFlutter.getUnreadCountForContact(userId)
+        .then((value) => print("Unread count : " + value.toString()))
+        .catchError((e, s) => print("Error."));
+```
+
+## Unread message count for channel
+To get the unread count for a channel, create a object with either the `groupId` or the `clientGroupId` (only one required):
+```dart
+dynamic channelDetails = { //you need to provide only one of the two
+  'groupId' : 123456, 
+  'clientGroupId' : "clientGroupId"
+};
+```
+The pass the object to this function:
+```dart
+ApplozicFlutter.getUnreadCountForChannel(channelDetails)
+        .then((value) => print("Unread count : " + value.toString()))
+        .catchError((e, s) => print("Error."));
+```
+
+## Number of unread chats
+Simply call the following function:
+```dart
+ApplozicFlutter.getUnreadChatsCount()
+        .then((value) => print("Unread chats count : " + value.toString()))
+        .catchError((e, s) => print("Error."));
+```
+
+## Total unread message count
+Simply call the following function:
+```dart
+ApplozicFlutter.getTotalUnreadCount()
+        .then((value) => print("Total unread count : " + value.toString()))
+        .catchError((e, s) => print("Error."));
 ```
 
 ## Add contacts
