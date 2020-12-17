@@ -121,6 +121,9 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
     }
 
     private void registerForPushNotification() {
+        if (context == null) {
+            return;
+        }
         Applozic.registerForPushNotification(context, new AlPushNotificationHandler() {
             @Override
             public void onSuccess(RegistrationResponse registrationResponse) {
@@ -134,6 +137,10 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
 
     @Override
     public void onMethodCall(final MethodCall call, @NonNull final Result result) {
+        if (context == null) {
+            result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
+            return;
+        }
         if (call.method.equals("login")) {
             User user = (User) GsonUtils.getObjectFromJson(GsonUtils.getJsonFromObject(call.arguments, Object.class), User.class);
 
@@ -167,10 +174,6 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
                 }
             });
         } else if (call.method.equals("launchChatScreen")) {
-            if (context == null) {
-                result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
-                return;
-            }
             Intent intent = new Intent(context, ConversationActivity.class);
             context.startActivity(intent);
         } else if (call.method.equals("launchChatWithUser")) {
@@ -265,10 +268,6 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
                 result.error(ERROR, "User not authorised. UserId is empty.", null);
             }
         } else if (call.method.equals("addMemberToGroup")) {
-            if (context == null) {
-                result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
-                return;
-            }
             Integer channelKey = null;
             String userId;
 
@@ -309,11 +308,6 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
             ApplozicChannelAddMemberTask applozicChannelAddMemberTask = new ApplozicChannelAddMemberTask(context, channelKey, userId, channelAddMemberListener);//pass channel key and userId whom you want to add to channel
             AlTask.execute(applozicChannelAddMemberTask);
         } else if (call.method.equals("removeMemberFromGroup")) {
-            if (context == null) {
-                result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
-                return;
-            }
-
             Integer channelKey = null;
             String userId = null;
             try {
@@ -356,10 +350,6 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
             }
             AlTask.execute(new ApplozicChannelRemoveMemberTask(context, channelKey, userId, channelRemoveMemberListener));//pass channelKey and userId whom you want to remove from channel
         } else if (call.method.equals("getUnreadCountForContact")) {
-            if (context == null) {
-                result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
-                return;
-            }
             if (call.arguments instanceof String) {
                 int contactUnreadCount = new MessageDatabaseService(context).getUnreadMessageCountForContact((String) call.arguments);
                 result.success(contactUnreadCount);
@@ -367,11 +357,6 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
                 result.error(ERROR, ResultMessages.Error.ILLEGAL_ARGUMENTS, "UserId is null/empty.");
             }
         } else if (call.method.equals("getUnreadCountForChannel")) {
-            if (context == null) {
-                result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
-                return;
-            }
-
             AlGroupInformationAsyncTask.GroupMemberListener listener = new AlGroupInformationAsyncTask.GroupMemberListener() {
                 @Override
                 public void onSuccess(Channel channel, Context context) {
@@ -403,11 +388,6 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
                 result.error(ERROR, ResultMessages.Error.ILLEGAL_ARGUMENTS, null);
             }
         } else if (call.method.equals("getUnreadChatsCount")) {
-            if (context == null) {
-                result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
-                return;
-            }
-
             ApplozicConversation.getLatestMessageList(context, false, new MessageListHandler() {
                 int unreadChatsCount = 0;
 
@@ -435,19 +415,9 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
                 }
             });
         } else if (call.method.equals("getTotalUnreadCount")) {
-            if (context == null) {
-                result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
-                return;
-            }
-
             int totalUnreadCount = new MessageDatabaseService(context).getTotalUnreadCount();
             result.success(totalUnreadCount);
         } else if (call.method.equals("sendMessage")) {
-            if (context == null) {
-                result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
-                return;
-            }
-
             final Message message = (Message) GsonUtils.getObjectFromJson(GsonUtils.getJsonFromObject(call.arguments, Object.class), Message.class);
 
             if (message == null) {
@@ -478,11 +448,6 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
                 }
             });
         } else if (call.method.equals("hideCreateGroupIcon")) {
-            if (context == null) {
-                result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
-                return;
-            }
-
             Object hide = call.arguments;
             if (hide instanceof Boolean) {
                 if ((Boolean) hide) {
@@ -495,11 +460,6 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
                 result.error(ERROR, ResultMessages.Error.ILLEGAL_ARGUMENTS, null);
             }
         } else if (call.method.equals("createToast")) {
-            if (context == null) {
-                result.error(ERROR, ResultMessages.Error.ACTIVITY_CONTEXT_NULL, null);
-                return;
-            }
-
             if (call.arguments instanceof String) {
                 Toast.makeText(context, (String) call.arguments, Toast.LENGTH_LONG).show();
                 result.success(SUCCESS + " : " + (String) call.arguments);
