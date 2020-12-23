@@ -60,6 +60,14 @@ class HomePageWidget extends StatelessWidget {
     return new DateTime.now().millisecondsSinceEpoch;
   }
 
+  void createToast(String message) {
+    if(Platform.isAndroid) {
+      ApplozicFlutter.createToast(message);
+    } else {
+      print("Toasts only supported for the android platform.");
+    }
+  }
+
   void createGroup(List<String> groupMemberList) {
     ApplozicFlutter.getLoggedInUserId().then((value) {
       if (!isGroupInProgress) {
@@ -82,7 +90,7 @@ class HomePageWidget extends StatelessWidget {
           }
         };
 
-        ApplozicFlutter.createToast("Creating...");
+        createToast("Creating...");
 
         ApplozicFlutter.createGroup(groupInfo)
             .then((value) {
@@ -94,12 +102,12 @@ class HomePageWidget extends StatelessWidget {
                 print("Unable to launch group : " + error != null
                     ? error
                     : stack);
-                ApplozicFlutter.createToast("Unable to launch group.");
+                createToast("Unable to launch group.");
               });
             })
             .catchError((error, stack) => {
                   print("Group created failed : " + error.toString()),
-                  ApplozicFlutter.createToast(
+                  createToast(
                       "Group create failed. Check logs.")
                 })
             .whenComplete(() => isGroupInProgress = false);
@@ -117,11 +125,11 @@ class HomePageWidget extends StatelessWidget {
     ApplozicFlutter.addMemberToGroup(detailsUser)
         .then((value) => {
               print("Member added successfully."),
-              ApplozicFlutter.createToast("Member added successfully.")
+              createToast("Member added successfully.")
             })
         .catchError((e, s) => {
               print("Error adding member."),
-              ApplozicFlutter.createToast("Error in adding member.")
+              createToast("Error in adding member.")
             });
   }
 
@@ -133,11 +141,11 @@ class HomePageWidget extends StatelessWidget {
     ApplozicFlutter.removeMemberFromGroup(detailsUser)
         .then((value) => {
               print("Member removed successfully."),
-              ApplozicFlutter.createToast("Member removed successfully.")
+              createToast("Member removed successfully.")
             })
         .catchError((e, s) => {
               print("Error removing member."),
-              ApplozicFlutter.createToast("Error in removing member.")
+              createToast("Error in removing member.")
             });
   }
 
@@ -157,11 +165,11 @@ class HomePageWidget extends StatelessWidget {
     ApplozicFlutter.addContacts(userArray)
         .then((value) => {
               print("Contact added successfully: " + value),
-              ApplozicFlutter.createToast("Contact added.")
+              createToast("Contact added.")
             })
         .catchError((e, s) => {
               print("Failed to add contacts: " + e.toString()),
-              ApplozicFlutter.createToast("Error in adding contact.")
+              createToast("Error in adding contact.")
             });
   }
 
@@ -176,28 +184,26 @@ class HomePageWidget extends StatelessWidget {
     };
 
     ApplozicFlutter.updateUserDetail(user)
-        .then((value) => {print("Name updated successfully: " + value), ApplozicFlutter.createToast("Name updated successfully.")})
-        .catchError((e, s) => {print("Error while updating name."), ApplozicFlutter.createToast("Error while updating name.")});
+        .then((value) => {print("Name updated successfully: " + value), createToast("Name updated successfully.")})
+        .catchError((e, s) => {print("Error while updating name."), createToast("Error while updating name.")});
   }
 
   void sendTestMessage(String userId) {
     dynamic message = {
       'to': userId, // userId of the receiver
       'message': "This is a test message sent to " + userId + " at " + getCurrentTime() + ".", // message to send
-      'type': 0 //(optional) DEFAULT(0),
     };
 
-    ApplozicFlutter.sendMessage(message).then((value) => ApplozicFlutter.createToast("Message sent.")).catchError((e, s) => ApplozicFlutter.createToast("Error while sending message: " + e.toString()));
+    ApplozicFlutter.sendMessage(message).then((value) => createToast("Message sent.")).catchError((e, s) => createToast("Error while sending message: " + e.toString()));
   }
 
   void sendMessageGroupId(String groupId) {
     dynamic message = {
       'groupId': groupId, // userId of the receiver
       'message': "GroupId is : " + groupId, // message to send
-      'type': 0 //(optional) DEFAULT(0),
     };
 
-    ApplozicFlutter.sendMessage(message).then((value) => ApplozicFlutter.createToast("Message sent with groupId.")).catchError((e, s) => ApplozicFlutter.createToast("Error while sending message."));
+    ApplozicFlutter.sendMessage(message).then((value) => createToast("Message sent with groupId.")).catchError((e, s) => createToast("Error while sending message."));
   }
 
   @override
@@ -413,7 +419,7 @@ class HomePageWidget extends StatelessWidget {
                                             value.toString()
                                       })
                                   .then((value) => {
-                                        ApplozicFlutter.createToast(
+                                        createToast(
                                             resultMessage)
                                       })
                             });
