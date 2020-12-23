@@ -73,10 +73,6 @@ class ApplozicFlutter {
     return await _channel.invokeMethod('sendMessage', message);
   }
 
-  static Future<String> hideCreateGroupIcon(dynamic hide) async {
-    return await _channel.invokeMethod('hideCreateGroupIcon', hide);
-  }
-
   static Future<String> createToast(dynamic text) async {
     return await _channel.invokeMethod('createToast', text);
   }

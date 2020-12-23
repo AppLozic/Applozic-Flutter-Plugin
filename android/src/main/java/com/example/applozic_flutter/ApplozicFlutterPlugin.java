@@ -447,18 +447,6 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
                     result.success(GsonUtils.getJsonFromObject(message, Message.class));
                 }
             });
-        } else if (call.method.equals("hideCreateGroupIcon")) {
-            Object hide = call.arguments;
-            if (hide instanceof Boolean) {
-                if ((Boolean) hide) {
-                    ApplozicSetting.getInstance(context).hideStartNewGroupButton();
-                } else {
-                    ApplozicSetting.getInstance(context).showStartNewGroupButton();
-                }
-                result.success("" + ApplozicSetting.getInstance(context).isStartNewGroupButtonVisible());
-            } else {
-                result.error(ERROR, ResultMessages.Error.ILLEGAL_ARGUMENTS, null);
-            }
         } else if (call.method.equals("createToast")) {
             if (call.arguments instanceof String) {
                 Toast.makeText(context, (String) call.arguments, Toast.LENGTH_LONG).show();
