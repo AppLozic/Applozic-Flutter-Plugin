@@ -199,7 +199,7 @@ class HomePageWidget extends StatelessWidget {
 
   void sendMessageGroupId(String groupId) {
     dynamic message = {
-      'groupId': groupId, // userId of the receiver
+      'groupId': int.parse(groupId), // userId of the receiver
       'message': "GroupId is : " + groupId, // message to send
     };
 
@@ -419,8 +419,7 @@ class HomePageWidget extends StatelessWidget {
                                             value.toString()
                                       })
                                   .then((value) => {
-                                        createToast(
-                                            resultMessage)
+                                        createToast(resultMessage), print(resultMessage)
                                       })
                             });
                   },
