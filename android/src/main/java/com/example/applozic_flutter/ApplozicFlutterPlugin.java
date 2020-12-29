@@ -120,17 +120,19 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
         this.context = null;
     }
 
-    private void registerForPushNotification() {
+    private void registerForPushNotification(final Result result) {
         if (context == null) {
             return;
         }
         Applozic.registerForPushNotification(context, new AlPushNotificationHandler() {
             @Override
             public void onSuccess(RegistrationResponse registrationResponse) {
+                result.success(registrationResponse);
             }
 
             @Override
             public void onFailure(RegistrationResponse registrationResponse, Exception exception) {
+                result.error(ERROR, ResultMessages.Error.INTERNAL_ERROR, exception.getMessage());
             }
         });
     }
@@ -150,7 +152,6 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
             Applozic.connectUser(context, user, new AlLoginHandler() {
                 @Override
                 public void onSuccess(RegistrationResponse registrationResponse, Context context) {
-                    registerForPushNotification();
                     result.success(GsonUtils.getJsonFromObject(registrationResponse, RegistrationResponse.class));
                 }
 
@@ -173,6 +174,8 @@ public class ApplozicFlutterPlugin implements FlutterPlugin, MethodCallHandler, 
                     result.error(ERROR, ResultMessages.Error.INTERNAL_ERROR, exception);
                 }
             });
+        } else if (call.method.equals("registerForPushNotification")) {
+            registerForPushNotification(result);
         } else if (call.method.equals("launchChatScreen")) {
             Intent intent = new Intent(context, ConversationActivity.class);
             context.startActivity(intent);

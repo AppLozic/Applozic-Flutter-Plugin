@@ -17,6 +17,10 @@ class ApplozicFlutter {
     return await _channel.invokeMethod('logout');
   }
 
+  static Future<dynamic> registerForPushNotification() async {
+    return await _channel.invokeMethod('registerForPushNotification');
+  }
+
   static Future<dynamic> launchChatScreen() async {
     return await _channel.invokeMethod('launchChatScreen');
   }
