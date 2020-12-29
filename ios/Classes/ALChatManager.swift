@@ -1,8 +1,8 @@
 //
 //  ALChatManager.swift
-//  Runner
+//  flutter_plugin
 //
-//  Created by Shubham Tewari on 29/12/20.
+//  Added by Shubham Tewari on 29/12/20 from Applozic Swift SDK
 //
 
 import Applozic
@@ -328,6 +328,3 @@ public class ALChatManager: NSObject {
               return config
     }()
 }
-    
-
-    
