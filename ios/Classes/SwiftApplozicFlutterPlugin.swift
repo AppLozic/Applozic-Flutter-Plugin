@@ -33,7 +33,7 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
                 }
                 
                 let chatManager = ALChatManager.init(applicationKey: user.applicationId as NSString)
-                chatManager.connectUserWithCompletion(user) { (response, error) in
+                chatManager.connectUser(user) { (response, error) in
                     guard  error == nil else  {
                         self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + error!.localizedDescription)
                         return

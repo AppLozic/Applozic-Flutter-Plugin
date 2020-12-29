@@ -10,6 +10,7 @@ import Foundation
 import Applozic
 import ApplozicSwift
 import UserNotifications
+import applozic_flutter
 
 @objc public class ApplozicWrapper: NSObject {
 
