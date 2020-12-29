@@ -92,6 +92,49 @@ You can get the userId of the logged in user as below:
    });
 ```
 
+## Push Notifications
+### Android
+
+- Goto /android/build.gradle Add the following under **buildscript -> dependencies**
+`classpath 'com.google.gms:google-services:4.0.1'`
+
+- Add the following at the bottom of the file:
+`apply plugin: 'com.google.gms.google-services'`
+
+After adding, it will look something like this:
+```groovy
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+
+    // Switch the Android Gradle plugin version requirement depending on the
+    // installed version of Gradle. This dependency is documented at
+    // http://tools.android.com/tech-docs/new-build-system/version-compatibility
+    // and https://issues.apache.org/jira/browse/CB-8143
+    dependencies {
+      classpath 'com.android.tools.build:gradle:3.3.0'
+      classpath 'com.google.gms:google-services:4.0.1'
+    }
+}
+
+apply plugin: 'com.google.gms.google-services'
+```
+
+- From login success callback, call `ApplozicFlutter.registerPushNotification();`
+
+- For push notifications, you must have a Firebase account: Sign-up to https://console.firebase.google.com/ and create your application and generate push notification services file.
+
+- Download google-services.json from your Firebase Console and paste it to `/android` folder
+
+- Go to Applozic console, update the FCM Server Key from Firebase account to your Applozic account push notification section [here](https://console.applozic.com/settings/pushnotification)
+
+###iOS
+
+- Creating APNs certificates and upload development and distributions certificates in applozic console you can refer this link [here](https://docs.applozic.com/docs/ios-push-notification#creating-apns-certificates)
+- Open `AppDelegate.m` file of your iOS project and add code as mentioned in the following documentation [here](https://docs.applozic.com/docs/ios-push-notification#push-notifications)
+
 ## Conversation
 ### Launch main chat screen
 Launch the main chat screen as below:
@@ -191,10 +234,9 @@ ApplozicFlutter.removeMemberFromGroup(detailObject)
 To send a message to a contact or a group, you must first create a message object:
 ```dart
 dynamic message = {
-      'to': userId, // to send message to a contact pass the userId of the receiver (You can ignore the groupId in this case)
-      'groupId': groupId, //to send message to a group pass the groupId (You can ingore the userId in this case)
+      'to': "userId", // to send message to a contact pass the userId of the receiver (You can ignore the groupId in this case)
+      'groupId': groupId, //to send message to a group pass the groupId (You can ignore the userId in this case)
       'message': "message text", // message to send
-      'type': 0 //(optional) DEFAULT(0),
     };
 ```
 **Note:** A message object can have more parameters. Refer to this link: https://docs.applozic.com/docs/android-chat-message-api#build-your-ui-from-scratch---message-api
@@ -251,7 +293,7 @@ Add contacts to applozic as below:
 ```dart
   dynamic user1 = {
       'userId': "user1",
-      'displayName': ""User 1,
+      'displayName': "User 1",
       "metadata": {
         'plugin': "Flutter",
         'platform': "Android"
@@ -260,7 +302,7 @@ Add contacts to applozic as below:
 
   dynamic user2 = {
       'userId': "user2",
-      'displayName': ""User 2,
+      'displayName': "User 2",
       "metadata": {
         'plugin': "Flutter",
         'platform': "Android"
