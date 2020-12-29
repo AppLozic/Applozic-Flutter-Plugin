@@ -3,6 +3,11 @@ import UIKit
 import Applozic
 import os.log
 
+var ERROR = "Error"
+var SUCCESS = "Success"
+var ERROR_INTERNAL = "Some internal error occurred."
+var ERROR_ILLEGAL_ARGUMENTS = "Invalid arguments."
+
 public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "applozic_flutter", binaryMessenger: registrar.messenger())
@@ -13,7 +18,7 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         if(call.method == "login") {
             guard let userDict = call.arguments as? Dictionary<String, Any> else {
-                self.sendErrorResultWithCallback(result: result, message: "Unable to parse user JSON")
+                self.sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
             do {
@@ -23,21 +28,21 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
                 let alUser = ALUser.init(jsonString: jsonString)
                 
                 guard let user = alUser  else {
-                    self.sendErrorResultWithCallback(result: result, message: "Unable to parse user JSON")
+                    self.sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                     return
                 }
                 
                 let chatManager = ALChatManager.init(applicationKey: user.applicationId as NSString)
                 chatManager.connectUserWithCompletion(user) { (response, error) in
                     guard  error == nil else  {
-                        self.sendErrorResultWithCallback(result: result, message: error!.localizedDescription)
+                        self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + error!.localizedDescription)
                         return
                     }
                     
                     self.sendSuccessResultWithCallback(result: result, object: (response?.dictionary())!)
                 }
             } catch {
-                self.sendErrorResultWithCallback(result: result, message: error.localizedDescription)
+                self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + error.localizedDescription)
             }
         } else if(call.method == "isLoggedIn") {
             result(ALUserDefaultsHandler.isLoggedIn())
@@ -45,16 +50,16 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
             let registerUserClientService = ALRegisterUserClientService()
             registerUserClientService.logout { (response, error) in
                 if(error == nil) {
-                    self.sendSuccessResultWithCallback(result: result, message: "Success")
+                    self.sendSuccessResultWithCallback(result: result, message: SUCCESS)
                 } else {
-                    self.sendErrorResultWithCallback(result: result, message: error!.localizedDescription)
+                    self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + error!.localizedDescription)
                 }
             }
         } else if(call.method == "launchChatScreen") {
-            self.getChatManager(result: result).launchChat(UIApplication.topViewController()!)
+            self.getChatManager(result: result).launchChatList(from: UIApplication.topViewController()!, with: ALChatManager.defaultConfiguration)
         } else if(call.method == "launchChatWithUser") {
-            self.getChatManager(result: result).launchChatForUser(call.arguments as! String, fromViewController: UIApplication.topViewController()!)
-            self.sendSuccessResultWithCallback(result: result, message: "Success")
+            self.getChatManager(result: result).launchChatWith(contactId: call.arguments as! String, from: UIApplication.topViewController()!, configuration: ALChatManager.defaultConfiguration, prefilledMessage: nil)
+            self.sendSuccessResultWithCallback(result: result, message: SUCCESS)
         } else if(call.method == "launchChatWithGroupId") {
             var groupId = NSNumber(0)
             
@@ -63,27 +68,27 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
             } else if let channelKey = call.arguments as? Int {
                 groupId = NSNumber(value: channelKey)
             } else {
-                sendErrorResultWithCallback(result: result, message: "Invalid groupId")
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
             
             if(groupId == 0) {
-                sendErrorResultWithCallback(result: result, message: "Invalid groupId")
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
             
             let channelService = ALChannelService()
             channelService.getChannelInformation(groupId, orClientChannelKey: nil) { (channel) in
                 guard channel != nil else {
-                    self.sendErrorResultWithCallback(result: result, message: "Channel is null, internal error occured")
+                    self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL)
                     return
                 }
-                self.getChatManager(result: result).launchChatForGroup((channel?.key!)!, fromController: UIApplication.topViewController()!)
-                self.sendSuccessResultWithCallback(result: result, message: channel!.clientChannelKey!)
+                self.getChatManager(result: result).launchGroupWith(clientGroupId: (channel?.clientChannelKey!)!, from: UIApplication.topViewController()!, configuration: ALChatManager.defaultConfiguration, prefilledMessage: nil)
+                self.sendSuccessResultWithCallback(result: result, message: (channel?.dictionary())!)
             }
         } else if(call.method == "createGroup") {
             guard let channelInfo = call.arguments as? Dictionary<String, Any> else {
-                self.sendErrorResultWithCallback(result: result, message: "Unable to parse groupInfo object")
+                self.sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
             var membersList = NSMutableArray();
@@ -98,50 +103,50 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
                 if(error == nil) {
                     self.sendSuccessResultWithCallback(result: result, message: (alChannel?.key.stringValue)!)
                 } else {
-                    self.sendErrorResultWithCallback(result: result, message: error!.localizedDescription)
+                    self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + error!.localizedDescription)
                 }
             }
         } else if(call.method == "updateUserDetail") {
             guard let user = call.arguments as? Dictionary<String, Any> else {
-                sendErrorResultWithCallback(result: result, message: "Invalid kmUser object")
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
             if(ALUserDefaultsHandler.isLoggedIn()) {
                 let userClientService = ALUserClientService()
                 userClientService.updateUserDisplayName(user["displayName"] as? String, andUserImageLink: user["imageLink"] as? String, userStatus: user["status"] as? String, metadata: user["metadata"] as? NSMutableDictionary) { (_, error) in
                     guard error == nil else {
-                        self.sendErrorResultWithCallback(result: result, message: error!.localizedDescription)
+                        self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + error!.localizedDescription)
                         return
                     }
-                    self.sendSuccessResultWithCallback(result: result, message: "Success")
+                    self.sendSuccessResultWithCallback(result: result, message: SUCCESS)
                 }
             } else {
-                sendErrorResultWithCallback(result: result, message: "User not authorised. This usually happens when calling the function before login. Make sure you call either of the two functions before updating the user details")
+                sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + "User not authorised. This usually happens when calling the function before login. Make sure you call either of the two functions before updating the user details.")
             }
         } else if(call.method == "addContacts") {
             let contactService = ALContactService()
-            guard let dictArray = call.arguments as? [Dictionary<String, Any>] else {
-                sendErrorResultWithCallback(result: result, message: "Unable to parse contact data")
+            guard let contactDetailsDict = call.arguments as? [Dictionary<String, Any>] else {
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
             
-            if(dictArray.count > 0) {
-                for userDict in dictArray {
+            if(contactDetailsDict.count > 0) {
+                for userDict in contactDetailsDict {
                     let userDetail = ALContact(dict: userDict)
                     contactService.updateOrInsert(userDetail)
                 }
-                sendSuccessResultWithCallback(result: result, message: "Success")
+                sendSuccessResultWithCallback(result: result, message: SUCCESS)
             }
         } else if(call.method == "getLoggedInUserId") {
             if(ALUserDefaultsHandler.isLoggedIn()) {
                 self.sendSuccessResultWithCallback(result: result, message: ALUserDefaultsHandler.getUserId()!)
             } else {
-                self.sendErrorResultWithCallback(result: result, message: "User not authorised. UserId is empty")
+                self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + "User not authorised. UserId is empty")
             }
         } else if(call.method == "sendMessage") {
             do {
                 guard let alMessageDict = call.arguments as? Dictionary<String, Any> else {
-                    sendErrorResultWithCallback(result: result, message: "Invalid message object")
+                    sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                     return
                 }
                 let jsonData = try JSONSerialization.data(withJSONObject: alMessageDict, options: .prettyPrinted)
@@ -150,97 +155,97 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
                 let alMessage = ALMessage.init(jsonString: jsonString)
                 
                 guard let message = alMessage  else {
-                    self.sendErrorResultWithCallback(result: result, message: "Unable to parse message JSON")
+                    self.sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                     return
                 }
                 let applicationKey = ALUserDefaultsHandler.getApplicationKey()
                 if(applicationKey != nil) {
                     let alChatManager = ALChatManager.init(applicationKey: applicationKey! as NSString)
                     alChatManager.sendMessage(alMessage: message) { (response, error) in
-                    if(error == nil) {
-                        self.sendSuccessResultWithCallback(result: result, message: "Successfully sent message")
+                    if(error == nil && response != nil) {
+                        self.sendSuccessResultWithCallback(result: result, message: (response?.dictionary()))
                         return
                     } else {
-                        self.sendErrorResultWithCallback(result: result, message: "Error sending message")
+                        self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL)
                         return
                     }
                 }
                 } else {
-                    sendErrorResultWithCallback(result: result, message: "Seems like you have not logged in!")
+                    sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + "Seems like you have not logged in!")
                     return
                 }
             } catch {
-                self.sendErrorResultWithCallback(result: result, message: error.localizedDescription)
+                self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + error.localizedDescription)
             }
         } else if (call.method == "addMemberToGroup") {
-            guard let alMessageDict = call.arguments as? Dictionary<String, Any> else {
-                sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+            guard let addMemberDetails = call.arguments as? Dictionary<String, Any> else {
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
-            if(alMessageDict.keys.contains("userId") && (alMessageDict.keys.contains("groupId") || alMessageDict.keys.contains("clientChannelKey"))) {
+            if(addMemberDetails.keys.contains("userId") && (addMemberDetails.keys.contains("groupId") || addMemberDetails.keys.contains("clientChannelKey"))) {
                 let alChannelService = ALChannelService();
-                guard let userId = alMessageDict["userId"] else {
-                    sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+                guard let userId = addMemberDetails["userId"] else {
+                    sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                     return
                 }
-                let channelKey = alMessageDict["groupId"]
-                let clientChannelKey = alMessageDict["clientGroupId"]
+                let channelKey = addMemberDetails["groupId"]
+                let clientChannelKey = addMemberDetails["clientGroupId"]
                 guard channelKey != nil || clientChannelKey != nil else {
-                    sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+                    sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                     return
                 }
                 alChannelService.addMember(toChannel: (userId as! String), andChannelKey: (channelKey as? NSNumber), orClientChannelKey: (clientChannelKey as? String)) { (error, aLAPIResponse) in
                     if(error == nil && aLAPIResponse != nil && aLAPIResponse?.status == "success" ) {
-                        self.sendSuccessResultWithCallback(result: result, message: "Added member successfully to channel")
+                        self.sendSuccessResultWithCallback(result: result, message: SUCCESS)
                         print("Added member successfully in channel")
                         return
                     }
                     else {
-                        self.sendErrorResultWithCallback(result: result, message: "Error adding member to channel")
+                        self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL)
                         print("Error adding member to channel")
                         return
                     }
                 }
             } else {
-                sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
         } else if (call.method == "removeMemberFromGroup") {
-            guard let alMessageDict = call.arguments as? Dictionary<String, Any> else {
-                sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+            guard let removeMemberDetails = call.arguments as? Dictionary<String, Any> else {
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
-            if(alMessageDict.keys.contains("userId") && (alMessageDict.keys.contains("groupId") || alMessageDict.keys.contains("clientChannelKey"))) {
+            if(removeMemberDetails.keys.contains("userId") && (removeMemberDetails.keys.contains("groupId") || removeMemberDetails.keys.contains("clientChannelKey"))) {
                     let alChannelService = ALChannelService();
-                guard let userId = alMessageDict["userId"] else {
-                    sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+                guard let userId = removeMemberDetails["userId"] else {
+                    sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                     return
                 }
-                let channelKey = alMessageDict["groupId"]
-                let clientChannelKey = alMessageDict["clientGroupId"]
+                let channelKey = removeMemberDetails["groupId"]
+                let clientChannelKey = removeMemberDetails["clientGroupId"]
                 guard channelKey != nil || clientChannelKey != nil else {
-                    sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+                    sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                     return
                 }
                 alChannelService.removeMember(fromChannel: (userId as! String), andChannelKey: (channelKey as? NSNumber), orClientChannelKey: (clientChannelKey as? String)) { (error, aLAPIResponse) in
                         if(error == nil && aLAPIResponse != nil && aLAPIResponse?.status == "success" ) {
-                            self.sendSuccessResultWithCallback(result: result, message: "Removed member successfully from channel")
+                            self.sendSuccessResultWithCallback(result: result, message: SUCCESS)
                             print("Removed member successfully from channel")
                             return
                         } else {
-                            self.sendErrorResultWithCallback(result: result, message: "Error removing member from channel")
+                            self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL)
                             print("Error removing member from channel")
                             return
                         }
                     }
             } else {
-                sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
         } else if (call.method == "getUnreadCountForContact") {
             let contactService = ALContactService()
             guard let userId = call.arguments else {
-                sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
             let contact = contactService.loadContact(byKey: "userId", value: (userId as! String))
@@ -248,26 +253,30 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
             sendSuccessResultWithCallback(result: result, message: unreadCount ?? 0)
         } else if (call.method == "getUnreadCountForChannel") {
             let channelService = ALChannelService()
-            guard let detailsDict = call.arguments as? Dictionary<String, Any> else {
-                sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+            guard let channelDetailsDict = call.arguments as? Dictionary<String, Any> else {
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
             
-            if (detailsDict.keys.contains("groupId")) {
-                guard let groupId = detailsDict["groupId"] else {
-                    sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+            if (channelDetailsDict.keys.contains("groupId")) {
+                guard let groupId = channelDetailsDict["groupId"] else {
+                    sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                     return
                 }
                 let channel = channelService.getChannelByKey(groupId as? NSNumber)
                 let unreadCount = channel?.unreadCount
                 sendSuccessResultWithCallback(result: result, message: unreadCount ?? 0)
             } else {
-                sendErrorResultWithCallback(result: result, message: "Invalid parameters")
+                sendErrorResultWithCallback(result: result, message: ERROR_ILLEGAL_ARGUMENTS)
                 return
             }
         } else if (call.method == "getUnreadChatsCount") {
             var applozicClient = ApplozicClient()
-            applozicClient = ApplozicClient(applicationKey: getApplicationKey() as String) as ApplozicClient
+            guard let applicationKey = ALUserDefaultsHandler.getApplicationKey() else {
+                sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL)
+                return
+            }
+            applozicClient = ApplozicClient(applicationKey: applicationKey) as ApplozicClient
             var unreadChatCounts = NSNumber(0)
             applozicClient.getLatestMessages(false, withCompletionHandler: { messageList, error in
                         if error == nil {
@@ -289,7 +298,7 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
                             }
                             self.sendSuccessResultWithCallback(result: result, message: unreadChatCounts)
                         } else {
-                            self.sendErrorResultWithCallback(result: result, message: "Error getting unread chats count")
+                            self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL)
                             return
                         }
                     })
@@ -299,7 +308,7 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
             if (totalUnreadCount != nil) {
                 sendSuccessResultWithCallback(result: result, message: totalUnreadCount ?? 0)
             } else {
-                sendErrorResultWithCallback(result: result, message: "Error getting total unread count")
+                sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL)
                 return
             }
         } else if (call.method == "createToast") {
@@ -315,7 +324,7 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
     }
     
     func sendErrorResultWithCallback(result: FlutterResult, message: String) {
-        result(FlutterError(code: "Error", message: message, details: nil))
+        result(FlutterError(code: ERROR, message: message, details: nil))
     }
     
     func sendSuccessResultWithCallback(result: FlutterResult, object: [AnyHashable : Any]) {
@@ -324,7 +333,7 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
             let jsonString = String(bytes: jsonData, encoding: .utf8)
             result(jsonString)
         } catch {
-            sendSuccessResultWithCallback(result: result, message: "Success")
+            sendSuccessResultWithCallback(result: result, message: SUCCESS)
         }
     }
     
@@ -333,7 +342,7 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
         if(applicationKey != nil) {
             return ALChatManager.init(applicationKey: applicationKey! as NSString)
         } else {
-            sendErrorResultWithCallback(result: result, message: "Seems like you have not logged in!")
+            sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + "Seems like you have not logged in!")
         }
         return ALChatManager.init(applicationKey: applicationKey! as NSString)
     }
@@ -357,4 +366,5 @@ extension UIApplication {
             return topViewController(controller: presented)
         }
         return controller
-    }}
+    }
+}

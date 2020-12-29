@@ -8,6 +8,7 @@
 
 import UIKit
 import Applozic
+import ApplozicSwift
 
 var TYPE_CLIENT : Int16 = 0
 var TYPE_APPLOZIC : Int16 = 1
@@ -24,6 +25,14 @@ class ALChatManager: NSObject {
         
         ALUserDefaultsHandler.setApplicationKey(applicationKey as String)
     }
+    
+    // use this to change configuration
+    public static var defaultConfiguration: ALKConfiguration = {
+         var config = ALKConfiguration()
+              //config.isTapOnNavigationBarEnabled = false
+              //config.isProfileTapActionEnabled = false
+              return config
+    }()
     
     // ----------------------
     // Call This at time of your app's user authentication OR User registration.
@@ -77,6 +86,130 @@ class ALChatManager: NSObject {
             }
 
         })
+    }
+    
+    func launchChatList(from viewController: UIViewController, with configuration: ALKConfiguration) {
+        let conversationVC = ALKConversationListViewController(configuration: configuration)
+        let navVC = ALKBaseNavigationViewController(rootViewController: conversationVC)
+        navVC.modalPresentationStyle = .fullScreen
+        viewController.present(navVC, animated: true, completion: nil)
+    }
+
+    func launch(viewController: UIViewController, from vc: UIViewController) {
+        let navVC = ALKBaseNavigationViewController(rootViewController: viewController)
+        guard vc.navigationController != nil else {
+            vc.present(navVC, animated: true, completion: nil)
+            return
+        }
+        vc.modalPresentationStyle = .fullScreen
+        vc.navigationController?.pushViewController(viewController, animated: true)
+    }
+
+    func launchChatWith(contactId: String, from viewController: UIViewController, configuration: ALKConfiguration, prefilledMessage: String? = nil) {
+        let alContactDbService = ALContactDBService()
+        var title = ""
+        if let alContact = alContactDbService.loadContact(byKey: "userId", value: contactId), let name = alContact.getDisplayName() {
+            title = name
+        }
+        title = title.isEmpty ? "No name" : title
+        let convViewModel = ALKConversationViewModel(contactId: contactId, channelKey: nil, localizedStringFileName: configuration.localizedStringFileName, prefilledMessage: prefilledMessage)
+        let conversationViewController = ALKConversationViewController(configuration: configuration, individualLaunch: true)
+        conversationViewController.viewModel = convViewModel
+        launch(viewController: conversationViewController, from: viewController)
+    }
+
+    func launchGroupWith(clientGroupId: String, from viewController: UIViewController, configuration: ALKConfiguration, prefilledMessage: String? = nil) {
+        let alChannelService = ALChannelService()
+        alChannelService.getChannelInformation(nil, orClientChannelKey: clientGroupId) { channel in
+            guard let channel = channel, let key = channel.key else { return }
+            let convViewModel = ALKConversationViewModel(contactId: nil, channelKey: key, localizedStringFileName: configuration.localizedStringFileName, prefilledMessage: prefilledMessage)
+            let conversationViewController = ALKConversationViewController(configuration: configuration, individualLaunch: true)
+            conversationViewController.viewModel = convViewModel
+            self.launch(viewController: conversationViewController, from: viewController)
+        }
+    }
+
+    /// Use [launchGroupOfTwo](x-source-tag://GroupOfTwo) method instead.
+    func launchChatWith(conversationProxy: ALConversationProxy, from viewController: UIViewController, configuration: ALKConfiguration) {
+        let userId = conversationProxy.userId
+        let groupId = conversationProxy.groupId
+        let convViewModel = ALKConversationViewModel(contactId: userId, channelKey: groupId, conversationProxy: conversationProxy, localizedStringFileName: configuration.localizedStringFileName)
+        let conversationViewController = ALKConversationViewController(configuration: configuration, individualLaunch: true)
+        conversationViewController.viewModel = convViewModel
+        launch(viewController: conversationViewController, from: viewController)
+    }
+
+    /// Use [launchGroupOfTwo](x-source-tag://GroupOfTwo) method instead.
+    func createAndLaunchChatWith(conversationProxy: ALConversationProxy, from viewController: UIViewController, configuration: ALKConfiguration) {
+        let conversationService = ALConversationService()
+        conversationService.createConversation(conversationProxy) { error, response in
+            guard let proxy = response, error == nil else {
+                print("Error creating conversation :: \(String(describing: error))")
+                return
+            }
+            let alConversationProxy = self.conversationProxyFrom(original: conversationProxy, generated: proxy)
+            self.launchChatWith(conversationProxy: alConversationProxy, from: viewController, configuration: configuration)
+        }
+    }
+    
+    private func conversationProxyFrom(original: ALConversationProxy, generated: ALConversationProxy) -> ALConversationProxy {
+        let finalProxy = ALConversationProxy()
+        finalProxy.userId = generated.userId
+        finalProxy.topicDetailJson = generated.topicDetailJson
+        finalProxy.id = original.id
+        finalProxy.groupId = original.groupId
+        return finalProxy
+    }
+
+
+    /// Use this to launch context based Group of two.
+    ///
+    /// - Parameters:
+    ///   - userId: UserId of the user with whom you want to start conversation.
+    ///   - metadata: Dictionary that contains details about contextual chat.
+    ///   - topic: A unique topic to identify conversation.
+    ///   - viewController: ViewController from where chat will be pushed
+    ///   - configuration: `ALKConfiguration` to configure chat settings.
+    /// - Tag: GroupOfTwo
+    /// - Usage:
+    ///
+    /// let metadata = NSMutableDictionary()
+    /// metadata["title"] = "<ITEM_TITLE>"
+    /// metadata["price"] = "<ITEM_PRICE>"
+    /// metadata["link"] = "<IMAGE_URL>"
+    /// metadata["AL_CONTEXT_BASED_CHAT"] = "true"
+    /// launchGroupOfTwo(with: "<RECEIVER_USER_ID>", metadata: metadata, topic: "<UNIQUE_TOPIC_ID>", from: self, configuration: AppDelegate.config)
+    func launchGroupOfTwo(
+        with userId: String,
+        metadata: NSMutableDictionary,
+        topic: String,
+        from viewController: UIViewController,
+        configuration: ALKConfiguration
+    ) {
+        let clientGroupId = String(format: "%@_%@_%@", topic, ALUserDefaultsHandler.getUserId(), userId)
+        let channelService = ALChannelService()
+        channelService.getChannelInformation(nil, orClientChannelKey: clientGroupId) {
+            channel in
+            guard let channel = channel else {
+                channelService.createChannel(userId, orClientChannelKey: clientGroupId, andMembersList: [userId], andImageLink: nil, channelType: Int16(GROUP_OF_TWO.rawValue), andMetaData: metadata, withCompletion: { channel, error in
+                    guard error == nil, let channel = channel else {
+                        print("Error while creating channel : \(String(describing: error))")
+                        return
+                    }
+                    ALChannelDBService().addMember(toChannel: userId, andChannelKey: channel.key)
+                    self.launchGroupWith(clientGroupId: clientGroupId, from: viewController, configuration: configuration)
+                })
+                return
+            }
+            if channel.metadata == metadata {
+                self.launchGroupWith(clientGroupId: clientGroupId, from: viewController, configuration: configuration)
+            } else {
+                channelService.updateChannelMetaData(channel.key, orClientChannelKey: nil, metadata: metadata, withCompletion: { error in
+                    print("Failed to update channel metadata: \(String(describing: error))")
+                    self.launchGroupWith(clientGroupId: clientGroupId, from: viewController, configuration: configuration)
+                })
+            }
+        }
     }
     
     // ----------------------  ------------------------------------------------------/
@@ -193,7 +326,6 @@ class ALChatManager: NSObject {
     //====================================================================================================================
     // Call This method if you want create a group of two and launch chat
     //====================================================================================================================
-
     func launchGroupOfTwo(withClientId clientGroupId: String?, withMetaData metadata: NSMutableDictionary, andWithUser userId: String?, andFrom viewController: UIViewController?) {
         let channelService = ALChannelService()
 
@@ -241,15 +373,15 @@ class ALChatManager: NSObject {
         }
     }
     
-    func sendMessage(alMessage: ALMessage, completion : @escaping (_ response: String?, _ error: NSError?) -> Void) {
+    func sendMessage(alMessage: ALMessage, completion : @escaping (_ response: ALMessage?, _ error: NSError?) -> Void) {
         var  applozicClient = ApplozicClient()
         applozicClient = ApplozicClient(applicationKey: getApplicationKey() as String) as ApplozicClient
         applozicClient.sendTextMessage(alMessage, withCompletion: { (alMessage, error) in
             if(error == nil) {
-                completion("Successfully sent message", nil)
+                completion(alMessage, nil)
             } else {
                 let errorPass = NSError(domain:"Error while sending message", code:0, userInfo:nil)
-                completion("Error" , errorPass as NSError?)
+                completion(nil , errorPass as NSError?)
             }
         })
     }
@@ -324,7 +456,6 @@ class ALChatManager: NSObject {
 //----------------------------------------------------------------------------------------------------
 // The below method combines the conversationID got from server's response with the details already set.
 //----------------------------------------------------------------------------------------------------
-
 func makeFinalProxyWithGeneratedProxy (_ generatedProxy:ALConversationProxy, responseProxy:ALConversationProxy)->ALConversationProxy{
 
     let finalProxy : ALConversationProxy = ALConversationProxy()
