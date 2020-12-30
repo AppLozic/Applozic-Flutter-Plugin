@@ -56,9 +56,17 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
                 }
             }
         } else if(call.method == "launchChatScreen") {
-            self.getChatManager(result: result).launchChatList(from: UIApplication.topViewController()!, with: ALChatManager.defaultConfiguration)
+            guard let alChatManager = self.getChatManager(result: result) else {
+                sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + "Seems like you have not logged in!")
+                return
+            }
+            alChatManager.launchChatList(from: UIApplication.topViewController()!, with: ALChatManager.defaultConfiguration)
         } else if(call.method == "launchChatWithUser") {
-            self.getChatManager(result: result).launchChatWith(contactId: call.arguments as! String, from: UIApplication.topViewController()!, configuration: ALChatManager.defaultConfiguration, prefilledMessage: nil)
+            guard let alChatManager = self.getChatManager(result: result) else {
+                sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + "Seems like you have not logged in!")
+                return
+            }
+            alChatManager.launchChatWith(contactId: call.arguments as! String, from: UIApplication.topViewController()!, configuration: ALChatManager.defaultConfiguration, prefilledMessage: nil)
             self.sendSuccessResultWithCallback(result: result, message: SUCCESS)
         } else if(call.method == "launchChatWithGroupId") {
             var groupId = NSNumber(0)
@@ -83,7 +91,11 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
                     self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL)
                     return
                 }
-                self.getChatManager(result: result).launchGroupWith(clientGroupId: (channel?.clientChannelKey!)!, from: UIApplication.topViewController()!, configuration: ALChatManager.defaultConfiguration, prefilledMessage: nil)
+                guard let alChatManager = self.getChatManager(result: result) else {
+                    self.sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + "Seems like you have not logged in!")
+                    return
+                }
+                alChatManager.launchGroupWith(clientGroupId: (channel?.clientChannelKey!)!, from: UIApplication.topViewController()!, configuration: ALChatManager.defaultConfiguration, prefilledMessage: nil)
                 self.sendSuccessResultWithCallback(result: result, message: (channel?.dictionary())!)
             }
         } else if(call.method == "createGroup") {
@@ -337,14 +349,14 @@ public class SwiftApplozicFlutterPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    func getChatManager(result: FlutterResult) -> ALChatManager {
+    func getChatManager(result: FlutterResult) -> ALChatManager? {
         let applicationKey = ALUserDefaultsHandler.getApplicationKey()
         if(applicationKey != nil) {
             return ALChatManager.init(applicationKey: applicationKey! as NSString)
         } else {
-            sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + "Seems like you have not logged in!")
+            sendErrorResultWithCallback(result: result, message: ERROR_INTERNAL + " : " + "Application key is nil.")
+            return nil
         }
-        return ALChatManager.init(applicationKey: applicationKey! as NSString)
     }
     
     func customBackAction() {
