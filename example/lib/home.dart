@@ -211,9 +211,7 @@ class HomePageWidget extends StatelessWidget {
     return Center(
       child: Container(
         padding: const EdgeInsets.all(36.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: ListView(
           children: <Widget>[
             new Material(
                 elevation: 5.0,
