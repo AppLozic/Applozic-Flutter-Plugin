@@ -8,6 +8,34 @@ import Flutter
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    UNUserNotificationCenter.current().delegate = self
+            ApplozicWrapper.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
+    
+    override func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+            ApplozicWrapper.shared.userNotificationCenter(center, willPresent: notification, withCompletionHandler: { options in
+                completionHandler(options)
+            })
+        }
+        
+        override func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+            ApplozicWrapper.shared.userNotificationCenter(center, didReceive: response, withCompletionHandler: {
+                completionHandler()
+            })
+        }
+        
+        override func applicationWillTerminate(_ application: UIApplication) {
+            ApplozicWrapper.shared.applicationWillTerminate(application: application)
+        }
+        
+        override func applicationWillEnterForeground(_ application: UIApplication) {
+            print("APP_ENTER_IN_FOREGROUND")
+            UIApplication.shared.applicationIconBadgeNumber = 0
+        }
+        
+        override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+            print("DEVICE_TOKEN_DATA :: \(deviceToken.description)") // (SWIFT = 3) : TOKEN PARSING
+            ApplozicWrapper.shared.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+        }
 }

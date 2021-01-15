@@ -1,9 +1,8 @@
 //
 //  ALChatManager.swift
-//  sampleapp-completeswift
+//  flutter_plugin
 //
-//  Created by Mukesh Thawani on 04/05/17.
-//  Copyright © 2017 Applozic. All rights reserved.
+//  Added by Shubham Tewari on 29/12/20 from Applozic Swift SDK
 //
 
 import Applozic
@@ -18,7 +17,7 @@ var TYPE_FACEBOOK: Int16 = 2
 var APNS_TYPE_DEVELOPMENT: Int16 = 0
 var APNS_TYPE_DISTRIBUTION: Int16 = 1
 
-class ALChatManager: NSObject {
+public class ALChatManager: NSObject {
     static let applicationId = "applozic-sample-app"
     static let shared = ALChatManager(applicationKey: ALChatManager.applicationId as NSString)
 
@@ -49,7 +48,6 @@ class ALChatManager: NSObject {
     func updateToken() {
         guard let deviceToken = pushNotificationTokenData else { return }
         print("DEVICE_TOKEN_DATA :: \(deviceToken.description)") // (SWIFT = 3) : TOKEN PARSING
-
         var deviceTokenString: String = ""
         for i in 0 ..< deviceToken.count {
             deviceTokenString += String(format: "%02.2hhx", deviceToken[i] as CVarArg)
@@ -57,7 +55,7 @@ class ALChatManager: NSObject {
         print("DEVICE_TOKEN_STRING :: \(deviceTokenString)")
 
         if ALUserDefaultsHandler.getApnDeviceToken() != deviceTokenString {
-            let alRegisterUserClientService: ALRegisterUserClientService = ALRegisterUserClientService()
+            let alRegisterUserClientService = ALRegisterUserClientService()
             alRegisterUserClientService.updateApnDeviceToken(withCompletion: deviceTokenString, withCompletion: { response, _ in
                 print("REGISTRATION_RESPONSE :: \(String(describing: response))")
             })
@@ -70,7 +68,7 @@ class ALChatManager: NSObject {
     // ----------------------
     func connectUser(_ alUser: ALUser, completion: @escaping (_ response: ALRegistrationResponse?, _ error: NSError?) -> Void) {
         _ = ALChatLauncher(applicationId: getApplicationKey() as String)
-        let registerUserClientService: ALRegisterUserClientService = ALRegisterUserClientService()
+        let registerUserClientService = ALRegisterUserClientService()
         registerUserClientService.initWithCompletion(alUser, withCompletion: { response, error in
             guard error == nil else {
                 completion(nil, error as NSError?)
@@ -82,8 +80,9 @@ class ALChatManager: NSObject {
                 return
             }
             guard response.isRegisteredSuccessfully() else {
-                let errorResponse = NSError(domain: "Applozic", code: 0, userInfo: [NSLocalizedDescriptionKey: response.message])
-                completion(nil, errorResponse as NSError?)
+                let message = response.message ?? "Api error while registering to applozic"
+                let errorResponse = NSError(domain: "Applozic", code: 0, userInfo: [NSLocalizedDescriptionKey: message])
+                completion(nil, errorResponse)
                 return
             }
             print("Registration successfull")
@@ -99,24 +98,28 @@ class ALChatManager: NSObject {
 
     func isUserPresent() -> Bool {
         guard let _ = ALUserDefaultsHandler.getApplicationKey() as String?,
-            let _ = ALUserDefaultsHandler.getUserId() as String? else {
+            let _ = ALUserDefaultsHandler.getUserId() as String?
+        else {
             return false
         }
         return true
     }
 
-    func logoutUser() {
+    func logoutUser(completion: @escaping (Bool) -> Void) {
         let registerUserClientService = ALRegisterUserClientService()
         if let _ = ALUserDefaultsHandler.getDeviceKeyString() {
             registerUserClientService.logout(completionHandler: {
                 _, _ in
                 NSLog("Applozic logout")
+                let appSettingsUserDefaults = ALKAppSettingsUserDefaults()
+                appSettingsUserDefaults.clear()
+                completion(true)
             })
         }
     }
 
     func defaultChatViewSettings() {
-        ALUserDefaultsHandler.setGoogleMapAPIKey("<GEO_API_KEY>") // REPLACE WITH YOUR GOOGLE MAPKEY
+        ALUserDefaultsHandler.setGoogleMapAPIKey("AIzaSyCOacEeJi-ZWLLrOtYyj3PKMTOFEG7HDlw") // REPLACE WITH YOUR GOOGLE MAPKEY
         ALApplozicSettings.setListOfViewControllers([ALKConversationListViewController.description(), ALKConversationViewController.description()])
         ALApplozicSettings.setFilterContactsStatus(false)
         ALUserDefaultsHandler.setDebugLogsRequire(true)
@@ -127,38 +130,38 @@ class ALChatManager: NSObject {
         let conversationVC = ALKConversationListViewController(configuration: configuration)
         let navVC = ALKBaseNavigationViewController(rootViewController: conversationVC)
         navVC.modalPresentationStyle = .fullScreen
-        viewController.present(navVC, animated: false, completion: nil)
+        viewController.present(navVC, animated: true, completion: nil)
     }
 
     func launch(viewController: UIViewController, from vc: UIViewController) {
-      let navVC = ALKBaseNavigationViewController(rootViewController: viewController)
-      guard vc.navigationController != nil else {
-        vc.present(navVC, animated: false, completion: nil)
-        return
-      }
+        let navVC = ALKBaseNavigationViewController(rootViewController: viewController)
+        guard vc.navigationController != nil else {
+            vc.present(navVC, animated: true, completion: nil)
+            return
+        }
         vc.modalPresentationStyle = .fullScreen
-        vc.navigationController?.pushViewController(viewController, animated: false)
+        vc.navigationController?.pushViewController(viewController, animated: true)
     }
 
-    func launchChatWith(contactId: String, from viewController: UIViewController, configuration: ALKConfiguration) {
+    func launchChatWith(contactId: String, from viewController: UIViewController, configuration: ALKConfiguration, prefilledMessage: String? = nil) {
         let alContactDbService = ALContactDBService()
         var title = ""
         if let alContact = alContactDbService.loadContact(byKey: "userId", value: contactId), let name = alContact.getDisplayName() {
             title = name
         }
         title = title.isEmpty ? "No name" : title
-        let convViewModel = ALKConversationViewModel(contactId: contactId, channelKey: nil, localizedStringFileName: configuration.localizedStringFileName)
-        let conversationViewController = ALKConversationViewController(configuration: configuration)
+        let convViewModel = ALKConversationViewModel(contactId: contactId, channelKey: nil, localizedStringFileName: configuration.localizedStringFileName, prefilledMessage: prefilledMessage)
+        let conversationViewController = ALKConversationViewController(configuration: configuration, individualLaunch: true)
         conversationViewController.viewModel = convViewModel
         launch(viewController: conversationViewController, from: viewController)
     }
 
-    func launchGroupWith(clientGroupId: String, from viewController: UIViewController, configuration: ALKConfiguration) {
+    func launchGroupWith(clientGroupId: String, from viewController: UIViewController, configuration: ALKConfiguration, prefilledMessage: String? = nil) {
         let alChannelService = ALChannelService()
         alChannelService.getChannelInformation(nil, orClientChannelKey: clientGroupId) { channel in
             guard let channel = channel, let key = channel.key else { return }
-            let convViewModel = ALKConversationViewModel(contactId: nil, channelKey: key, localizedStringFileName: configuration.localizedStringFileName)
-            let conversationViewController = ALKConversationViewController(configuration: configuration)
+            let convViewModel = ALKConversationViewModel(contactId: nil, channelKey: key, localizedStringFileName: configuration.localizedStringFileName, prefilledMessage: prefilledMessage)
+            let conversationViewController = ALKConversationViewController(configuration: configuration, individualLaunch: true)
             conversationViewController.viewModel = convViewModel
             self.launch(viewController: conversationViewController, from: viewController)
         }
@@ -169,7 +172,7 @@ class ALChatManager: NSObject {
         let userId = conversationProxy.userId
         let groupId = conversationProxy.groupId
         let convViewModel = ALKConversationViewModel(contactId: userId, channelKey: groupId, conversationProxy: conversationProxy, localizedStringFileName: configuration.localizedStringFileName)
-        let conversationViewController = ALKConversationViewController(configuration: configuration)
+        let conversationViewController = ALKConversationViewController(configuration: configuration, individualLaunch: true)
         conversationViewController.viewModel = convViewModel
         launch(viewController: conversationViewController, from: viewController)
     }
@@ -236,6 +239,19 @@ class ALChatManager: NSObject {
             }
         }
     }
+    
+    func sendMessage(alMessage: ALMessage, completion : @escaping (_ response: ALMessage?, _ error: NSError?) -> Void) {
+        var  applozicClient = ApplozicClient()
+        applozicClient = ApplozicClient(applicationKey: getApplicationKey() as String) as ApplozicClient
+        applozicClient.sendTextMessage(alMessage, withCompletion: { (alMessage, error) in
+            if(error == nil) {
+                completion(alMessage, nil)
+            } else {
+                let errorPass = NSError(domain:"Error while sending message", code:0, userInfo:nil)
+                completion(nil , errorPass as NSError?)
+            }
+        })
+    }
 
     func launchContactList(from viewController: UIViewController, configuration: ALKConfiguration) {
         let newChatVC = ALKNewChatViewController(configuration: configuration, viewModel: ALKNewChatViewModel(localizedStringFileName: configuration.localizedStringFileName))
@@ -293,20 +309,22 @@ class ALChatManager: NSObject {
     private func chatTitleUsing(userId: String?, groupId: NSNumber?) -> String {
         if let contactId = userId,
             let contact = ALContactDBService().loadContact(byKey: "userId", value: contactId),
-            let name = contact.getDisplayName() {
+            let name = contact.getDisplayName()
+        {
             return name
         }
         if let channelKey = groupId,
-            let channel = ALChannelService().getChannelByKey(channelKey) {
+            let channel = ALChannelService().getChannelByKey(channelKey)
+        {
             return channel.name
         }
         return "No name"
     }
     
     public static var defaultConfiguration: ALKConfiguration = {
-     var config = ALKConfiguration()
-          config.isTapOnNavigationBarEnabled = false
-          config.isProfileTapActionEnabled = false
-          return config
-        }()
+         var config = ALKConfiguration()
+              config.isTapOnNavigationBarEnabled = false
+              config.isProfileTapActionEnabled = false
+              return config
+    }()
 }

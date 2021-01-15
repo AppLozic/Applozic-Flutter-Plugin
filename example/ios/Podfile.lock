@@ -1,25 +1,25 @@
 PODS:
-  - Applozic (7.3.0):
-    - SDWebImage (~> 5.1.0)
+  - Applozic (7.11.1):
+    - SDWebImage (~> 5.9.2)
   - applozic_flutter (0.0.1):
-    - ApplozicSwift (~> 5.3.0)
+    - ApplozicSwift (~> 5.11.1)
     - Flutter
-  - ApplozicSwift (5.3.0):
-    - ApplozicSwift/Complete (= 5.3.0)
-  - ApplozicSwift/Complete (5.3.0):
-    - Applozic (~> 7.3.0)
+  - ApplozicSwift (5.11.1):
+    - ApplozicSwift/Complete (= 5.11.1)
+  - ApplozicSwift/Complete (5.11.1):
+    - Applozic (~> 7.11.0)
     - ApplozicSwift/RichMessageKit
-    - Kingfisher (~> 5.13.0)
+    - Kingfisher (~> 5.14.0)
     - MGSwipeTableCell (~> 1.6.11)
-  - ApplozicSwift/RichMessageKit (5.3.0)
+  - ApplozicSwift/RichMessageKit (5.11.1)
   - Flutter (1.0.0)
-  - Kingfisher (5.13.4):
-    - Kingfisher/Core (= 5.13.4)
-  - Kingfisher/Core (5.13.4)
+  - Kingfisher (5.14.1):
+    - Kingfisher/Core (= 5.14.1)
+  - Kingfisher/Core (5.14.1)
   - MGSwipeTableCell (1.6.11)
-  - SDWebImage (5.1.1):
-    - SDWebImage/Core (= 5.1.1)
-  - SDWebImage/Core (5.1.1)
+  - SDWebImage (5.9.5):
+    - SDWebImage/Core (= 5.9.5)
+  - SDWebImage/Core (5.9.5)
 
 DEPENDENCIES:
   - applozic_flutter (from `.symlinks/plugins/applozic_flutter/ios`)
@@ -40,14 +40,14 @@ EXTERNAL SOURCES:
     :path: Flutter
 
 SPEC CHECKSUMS:
-  Applozic: 9fffca38afaf77ced5196619e00a4c67b074ecfc
-  applozic_flutter: 301c78736473b928564376c7a07d5a43496d2559
-  ApplozicSwift: c40a0a1fa362550d53ffacd550c363ed9886c97d
+  Applozic: 673eba55f167f1b06004ec8f959b356d3a59af66
+  applozic_flutter: f006d5b3aa527bf7b24f2e78782ae9a23347fba0
+  ApplozicSwift: 3fd390c1d7b7187de5700e9fe900d1bffc61080d
   Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
-  Kingfisher: d2279a7abece3c7f25a80cd2b7f363ca5cf3f44c
+  Kingfisher: 8050bc6f7f68cbf3908bd04df7ccbac188f6d6d6
   MGSwipeTableCell: b804e4e450dee439c42250be90bd50458bf67fce
-  SDWebImage: 96d7f03415ccb28d299d765f93557ff8a617abd8
+  SDWebImage: 0b2ba0d56479bf6a45ecddbfd5558bea93150d25
 
 PODFILE CHECKSUM: 78296c28d45f58118ed97ed49e0ea951fb262214
 
-COCOAPODS: 1.9.1
+COCOAPODS: 1.10.0

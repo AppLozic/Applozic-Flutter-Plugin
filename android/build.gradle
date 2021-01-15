@@ -33,5 +33,5 @@ android {
 }
 
 dependencies {
-    api 'com.applozic.communication.uiwidget:mobicomkitui:5.81'
+    api 'com.applozic.communication.uiwidget:mobicomkitui:5.95'
 }
